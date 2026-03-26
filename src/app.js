@@ -12,6 +12,17 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 app.use(morgan('dev'));
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
+const userRoutes   = require('./routes/userRoutes');
+const vendorRoutes = require('./routes/vendorRoutes');
+const adminRoutes  = require('./routes/adminRoutes');
+
+app.use('/api/users',   userRoutes);
+app.use('/api/vendors', vendorRoutes);
+app.use('/api/admin',   adminRoutes);
+
 
 app.get('/', (req, res) => {
   res.json({
