@@ -21,12 +21,17 @@ const vendorRoutes  = require('./routes/vendorRoutes');
 const adminRoutes   = require('./routes/adminRoutes');
 const productRoutes = require('./routes/productRoutes');
 
+const orderRoutes    = require('./routes/orderRoutes');
+const shippingRoutes = require('./routes/shippingRoutes');
+
 
 app.use('/api/users',    userRoutes);
 app.use('/api/vendors',  vendorRoutes);
 app.use('/api/admin',    adminRoutes);
 app.use('/api/products', productRoutes);
 
+app.use('/api/orders',   orderRoutes);
+app.use('/api/shipping', shippingRoutes);
 
 app.get('/', (req, res) => {
   res.json({
