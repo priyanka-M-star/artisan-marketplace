@@ -15,13 +15,17 @@ app.use(morgan('dev'));
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
-const userRoutes   = require('./routes/userRoutes');
-const vendorRoutes = require('./routes/vendorRoutes');
-const adminRoutes  = require('./routes/adminRoutes');
 
-app.use('/api/users',   userRoutes);
-app.use('/api/vendors', vendorRoutes);
-app.use('/api/admin',   adminRoutes);
+const userRoutes    = require('./routes/userRoutes');
+const vendorRoutes  = require('./routes/vendorRoutes');
+const adminRoutes   = require('./routes/adminRoutes');
+const productRoutes = require('./routes/productRoutes');
+
+
+app.use('/api/users',    userRoutes);
+app.use('/api/vendors',  vendorRoutes);
+app.use('/api/admin',    adminRoutes);
+app.use('/api/products', productRoutes);
 
 
 app.get('/', (req, res) => {
