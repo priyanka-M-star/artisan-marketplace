@@ -6,7 +6,14 @@ require('dotenv').config();
 const connectDB = require('./config/db');
 connectDB();
 
+
 const app = express();
+
+const { stripeWebhook } = require('./controllers/paymentController');
+app.post('/api/webhooks/stripe',
+  express.raw({ type: 'application/json' }),
+  stripeWebhook
+);
 
 app.use(express.json());
 app.use(cors());
@@ -23,7 +30,8 @@ const productRoutes = require('./routes/productRoutes');
 
 const orderRoutes    = require('./routes/orderRoutes');
 const shippingRoutes = require('./routes/shippingRoutes');
-
+const paymentRoutes = require('./routes/paymentRoutes');
+app.use('/api/payments', paymentRoutes);
 
 app.use('/api/users',    userRoutes);
 app.use('/api/vendors',  vendorRoutes);
