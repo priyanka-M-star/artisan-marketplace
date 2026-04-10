@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artisan — Vendor Orders</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .order-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:22px;margin-bottom:14px;animation:fadeUp 0.4s ease both;}
+    .order-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+    .order-id{font-size:14px;font-weight:500;font-family:var(--font-mono);}
+    .order-date{font-size:13px;color:var(--ink-light);margin-bottom:12px;}
+    .order-items-grid{border-top:1px solid var(--border);padding-top:10px;margin-bottom:14px;}
+    .order-item-row{display:grid;grid-template-columns:1fr 60px 100px;font-size:14px;padding:5px 0;border-bottom:1px solid var(--border);}
+    .order-item-row:last-child{border-bottom:none;}
+    .order-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-top:12px;border-top:1px solid var(--border);}
+    .buyer-info{font-size:13px;color:var(--ink-muted);}
+    .status-select{padding:8px 12px;border:1px solid var(--border-med);border-radius:var(--radius-sm);font-size:13px;color:var(--ink);background:var(--bg-card);cursor:pointer;font-family:var(--font-body);}
+    .filter-bar{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;}
+    .filter-btn{padding:7px 16px;border:1px solid var(--border-med);border-radius:20px;background:var(--bg-card);font-size:13px;font-weight:500;color:var(--ink-muted);cursor:pointer;transition:var(--transition);}
+    .filter-btn:hover,.filter-btn.active{background:var(--ink);color:white;border-color:var(--ink);}
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <a href="dashboard.html" class="brand"><span class="brand-star">✦</span><span class="brand-name">Artisan</span></a>
+  <nav class="header-nav">
+    <a href="dashboard.html" class="nav-link">Dashboard</a>
+    <a href="my-products.html" class="nav-link">Products</a>
+    <button class="nav-link" onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="page-content">
+  <div class="page-title">Incoming Orders</div>
+  <p class="page-subtitle">Manage and fulfill customer orders</p>
+
+  <!-- Status filter buttons -->
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterOrders('all',this)">All</button>
+    <button class="filter-btn" onclick="filterOrders('pending',this)">Pending</button>
+    <button class="filter-btn" onclick="filterOrders('processing',this)">Processing</button>
+    <button class="filter-btn" onclick="filterOrders('shipped',this)">Shipped</button>
+    <button class="filter-btn" onclick="filterOrders('delivered',this)">Delivered</button>
+    <button class="filter-btn" onclick="filterOrders('cancelled',this)">Cancelled</button>
+  </div>
+
+  <div id="ordersList">
+    <div class="empty-state"><div class="empty-icon">◈</div><p>Loading orders...</p></div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+requireVendor();
+
+let allOrders = [];
+let activeFilter = 'all';
+
+window.onload = loadOrders;
+
+async function loadOrders() {
+  try {
+    // GET /api/orders/vendor/all
+    const res = await apiGetVendorOrders();
+    allOrders = res.data || [];
+    renderOrders();
+  } catch(err) {
+    document.getElementById('ordersList').innerHTML =
+      `<div class="empty-state"><div class="empty-icon">◈</div><p>${err.message}</p></div>`;
+  }
+}
+
+function filterOrders(status, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = status;
+  renderOrders();
+}
+
+function renderOrders() {
+  const el = document.getElementById('ordersList');
+  const filtered = activeFilter === 'all'
+    ? allOrders
+    : allOrders.filter(o => o.status.toLowerCase() === activeFilter);
+
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">◈</div>
+      <h3>No ${activeFilter === 'all' ? '' : activeFilter} orders</h3>
+      <p>${activeFilter === 'all' ? 'Orders will appear here when customers buy your products' : 'No orders with this status'}</p>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map((o, i) => `
+    <div class="order-card" style="animation-delay:${i*0.04}s">
+      <div class="order-top">
+        <span class="order-id">#${o._id.slice(-8).toUpperCase()}</span>
+        <span class="badge badge-${o.status.toLowerCase()}">${o.status}</span>
+      </div>
+      <div class="order-date">${new Date(o.createdAt).toLocaleString()}</div>
+
+      <div class="order-items-grid">
+        ${o.items.map(item => `
+          <div class="order-item-row">
+            <span>${item.product?.title || 'Product'}</span>
+            <span style="text-align:center;color:var(--ink-muted);">×${item.quantity}</span>
+            <span style="text-align:right;font-weight:500;">₹${(item.price * item.quantity).toLocaleString()}</span>
+          </div>`).join('')}
+      </div>
+
+      <div class="order-footer">
+        <div>
+          <div style="font-size:15px;font-weight:500;">₹${o.totalAmount.toLocaleString()}</div>
+          <div class="buyer-info">
+            👤 ${o.buyer?.name || 'Customer'} · ${o.buyer?.email || ''}
+          </div>
+          <div class="buyer-info" style="margin-top:3px;">
+            📍 ${o.shippingAddress?.city}, ${o.shippingAddress?.state}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="badge badge-${o.paymentStatus === 'paid' ? 'paid' : 'unpaid'}">
+            ${o.paymentStatus === 'paid' ? '✓ Paid' : 'Unpaid'}
+          </span>
+          <!-- Status update dropdown — only show if not delivered/cancelled -->
+          ${o.status !== 'delivered' && o.status !== 'cancelled' ? `
+          <select class="status-select" onchange="updateStatus('${o._id}', this.value, this)">
+            <option value="">Update status</option>
+            <option value="processing" ${o.status==='processing'?'selected':''}>Processing</option>
+            <option value="shipped"    ${o.status==='shipped'   ?'selected':''}>Shipped</option>
+            <option value="delivered"  ${o.status==='delivered' ?'selected':''}>Delivered</option>
+            <option value="cancelled"  ${o.status==='cancelled' ?'selected':''}>Cancelled</option>
+          </select>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function updateStatus(orderId, newStatus, selectEl) {
+  if (!newStatus) return;
+
+  const original = selectEl.value;
+  selectEl.disabled = true;
+
+  try {
+    // PATCH /api/orders/:id/status
+    await apiUpdateOrderStatus(orderId, newStatus);
+    showToast(`Order marked as ${newStatus} ✓`, 'success');
+    loadOrders(); // refresh list
+  } catch(err) {
+    showToast(err.message || 'Could not update status', 'error');
+    selectEl.value    = '';
+    selectEl.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

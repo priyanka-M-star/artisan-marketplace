@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artisan — Product Details</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .product-detail{max-width:1200px;margin:0 auto;padding:24px;}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-bottom:64px;}
+    .detail-images{display:flex;flex-direction:column;gap:16px;}
+    .main-image{width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--bg);}
+    .image-thumbnails{display:flex;gap:8px;overflow-x:auto;}
+    .image-thumbnails img{width:80px;height:80px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--border);cursor:pointer;transition:var(--transition);}
+    .image-thumbnails img:hover{border-color:var(--accent);}
+    .image-thumbnails img.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-light);}
+    .detail-info h1{font-family:var(--font-display);font-size:32px;font-weight:400;margin-bottom:8px;}
+    .detail-price{font-size:28px;font-weight:500;color:var(--accent);margin-bottom:16px;}
+    .detail-desc{color:var(--ink);line-height:1.7;margin-bottom:24px;}
+    .detail-meta{display:flex;flex-direction:column;gap:16px;margin-bottom:24px;}
+    .meta-row{display:flex;align-items:center;gap:12px;font-size:14px;}
+    .meta-label{color:var(--ink-light);min-width:80px;}
+    .meta-value{font-weight:500;}
+    .stock-status{display:inline-block;padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;}
+    .stock-in{background:var(--success-bg);color:var(--success);}
+    .stock-out{background:var(--error-bg);color:var(--error);}
+    .detail-actions{display:flex;gap:12px;align-items:center;}
+    .qty-selector{display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);}
+    .qty-btn{width:40px;height:44px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink);transition:var(--transition);}
+    .qty-btn:hover{background:var(--bg);}
+    .qty-input{width:50px;text-align:center;border:none;font-size:15px;background:transparent;color:var(--ink);}
+    .add-to-cart{flex:1;height:44px;padding:0 32px;font-size:15px;}
+    .vendor-info{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;margin-top:24px;}
+    .vendor-info h3{font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink-light);margin-bottom:12px;}
+    .vendor-name{font-size:16px;font-weight:500;color:var(--ink);}
+    .similar-section{margin-top:64px;}
+    .section-title{font-family:var(--font-display);font-size:24px;font-weight:400;margin-bottom:24px;}
+    .similar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:24px;}
+    .similar-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;transition:var(--transition);cursor:pointer;animation:fadeUp 0.4s ease both;}
+    .similar-card:hover{border-color:var(--border-med);box-shadow:var(--shadow-md);transform:translateY(-4px);}
+    .similar-img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--accent-light);}
+    .similar-body{padding:16px;}
+    .similar-title{font-size:14px;font-weight:500;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .similar-price{font-size:18px;font-weight:500;color:var(--accent);}
+    @media(max-width:768px){
+      .detail-grid{grid-template-columns:1fr;gap:24px;}
+      .detail-info h1{font-size:24px;}
+      .detail-actions{flex-direction:column;}
+      .qty-selector{width:100%;}
+      .add-to-cart{width:100%;}
+    }
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <a href="marketplace.html" class="brand"><span class="brand-star">✦</span><span class="brand-name">Artisan</span></a>
+  <nav class="header-nav">
+    <a href="marketplace.html" class="nav-link">Shop</a>
+    <a href="orders.html" class="nav-link">Orders</a>
+    <button class="nav-link" onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="product-detail">
+  <div class="detail-grid">
+    <!-- Left: Images -->
+    <div class="detail-images">
+      <img id="mainImage" class="main-image" src="" alt="">
+      <div id="thumbnails" class="image-thumbnails"></div>
+    </div>
+
+    <!-- Right: Info -->
+    <div class="detail-info">
+      <h1 id="productTitle"></h1>
+      <div id="productPrice" class="detail-price"></div>
+      <p id="productDesc" class="detail-desc"></p>
+
+      <div class="detail-meta">
+        <div class="meta-row">
+          <span class="meta-label">Category:</span>
+          <span id="productCategory" class="meta-value"></span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Availability:</span>
+          <span id="stockStatus" class="stock-status"></span>
+        </div>
+      </div>
+
+      <div class="detail-actions">
+        <div class="qty-selector">
+          <button class="qty-btn" onclick="changeQty(-1)">−</button>
+          <input type="number" id="qtyInput" class="qty-input" value="1" min="1" readonly>
+          <button class="qty-btn" onclick="changeQty(1)">+</button>
+        </div>
+        <button id="addToCartBtn" class="btn-primary add-to-cart" onclick="addToCart()">Add to Cart</button>
+      </div>
+
+      <div class="vendor-info">
+        <h3>Sold By</h3>
+        <div id="vendorName" class="vendor-name"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Similar Products -->
+  <div class="similar-section">
+    <h2 class="section-title">Similar Products</h2>
+    <div id="similarGrid" class="similar-grid"></div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+requireAuth();
+
+let currentProduct = null;
+let allProducts = [];
+
+window.onload = async function() {
+  // Get product ID from URL
+  const params = new URLSearchParams(window.location.search);
+  const productId = params.get('id');
+
+  if (!productId) {
+    showToast('Product not found', 'error');
+    window.location.href = 'marketplace.html';
+    return;
+  }
+
+  try {
+    // Load product details
+    const response = await apiGetProduct(productId);
+    currentProduct = response.data;  // Store the actual product, not the wrapper
+    renderProduct(currentProduct);
+
+    // Load all products for similar items
+    const res = await apiGetProducts({ limit: 100 });
+    allProducts = res.data || [];
+    renderSimilarProducts(currentProduct);
+
+  } catch (err) {
+    showToast('Product not found', 'error');
+    window.location.href = 'marketplace.html';
+  }
+};
+
+function renderProduct(product) {
+  document.getElementById('productTitle').textContent = product.title;
+  document.getElementById('productPrice').textContent = '₹' + product.price.toLocaleString();
+  document.getElementById('productDesc').textContent = product.description;
+  document.getElementById('productCategory').textContent = product.category;
+
+  // Stock status
+  const stockEl = document.getElementById('stockStatus');
+  if (product.stock > 0) {
+    stockEl.textContent = 'In Stock (' + product.stock + ' available)';
+    stockEl.className = 'stock-status stock-in';
+  } else {
+    stockEl.textContent = 'Out of Stock';
+    stockEl.className = 'stock-status stock-out';
+    document.getElementById('addToCartBtn').disabled = true;
+    document.getElementById('addToCartBtn').textContent = 'Out of Stock';
+  }
+
+  // Images
+  const mainImg = document.getElementById('mainImage');
+  const thumbsContainer = document.getElementById('thumbnails');
+
+  if (product.images && product.images.length > 0) {
+    mainImg.src = product.images[0];
+    thumbsContainer.innerHTML = product.images.map((img, i) =>
+      `<img src="${img}" onclick="changeMainImage('${img}')" class="${i === 0 ? 'active' : ''}">`
+    ).join('');
+  } else {
+    mainImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23ddd" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="%23999">No Image</text></svg>';
+  }
+
+  // Vendor
+  if (product.vendor) {
+    const vendorName = typeof product.vendor === 'object' ? product.vendor.name : 'Artisan Vendor';
+    document.getElementById('vendorName').textContent = vendorName;
+  }
+}
+
+function changeMainImage(src) {
+  document.getElementById('mainImage').src = src;
+  document.querySelectorAll('.image-thumbnails img').forEach(img => {
+    img.classList.remove('active');
+    if (img.src === src) img.classList.add('active');
+  });
+}
+
+function changeQty(delta) {
+  const input = document.getElementById('qtyInput');
+  const newVal = Math.max(1, parseInt(input.value) + delta);
+  const maxStock = currentProduct.stock;
+  input.value = Math.min(newVal, maxStock);
+}
+
+function addToCart() {
+  const qty = parseInt(document.getElementById('qtyInput').value);
+
+  // Safety check
+  if (!currentProduct || !currentProduct._id) {
+    showToast('Product information not loaded. Please refresh.', 'error');
+    return;
+  }
+
+  // Get existing cart
+  let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+  // Check if product already in cart
+  const existingIndex = cart.findIndex(item => item.id === currentProduct._id);
+
+  if (existingIndex >= 0) {
+    cart[existingIndex].qty += qty;
+  } else {
+    cart.push({
+      id: currentProduct._id,
+      title: currentProduct.title,
+      price: currentProduct.price,
+      img: currentProduct.images?.[0] || '',
+      qty: qty,
+      vendorId: typeof currentProduct.vendor === 'object' ? currentProduct.vendor._id : currentProduct.vendor
+    });
+  }
+
+  localStorage.setItem('cart', JSON.stringify(cart));
+  showToast('Added to cart!', 'success');
+  updateCartCount();
+}
+
+function updateCartCount() {
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+  // You can add a cart badge in the header if you want
+}
+
+function renderSimilarProducts(product) {
+  const container = document.getElementById('similarGrid');
+
+  // Find products in same category (excluding current product)
+  const similar = allProducts.filter(p =>
+    p.category === product.category &&
+    p._id !== product._id
+  ).slice(0, 4);
+
+  if (similar.length === 0) {
+    container.innerHTML = '<p style="color:var(--ink-muted);">No similar products found.</p>';
+    return;
+  }
+
+  container.innerHTML = similar.map(p => `
+    <div class="similar-card" onclick="window.location.href='product-detail.html?id=${p._id}'">
+      <img class="similar-img" src="${p.images?.[0] || ''}" alt="${p.title}">
+      <div class="similar-body">
+        <div class="similar-title">${p.title}</div>
+        <div class="similar-price">₹${p.price.toLocaleString()}</div>
+      </div>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>

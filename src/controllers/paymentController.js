@@ -6,17 +6,46 @@ const onboardVendor = async (req, res) => {
   try {
     let vendor = await Vendor.findOne({ user: req.user._id });
     if (!vendor) return res.status(404).json({ message: 'Vendor profile not found. Create one first.' });
+
+    // TEST MODE: Skip real Stripe onboarding for testing
+    if (process.env.NODE_ENV === 'development' || process.env.STRIPE_TEST_MODE === 'true') {
+      if (!vendor.stripeAccountId) {
+        vendor.stripeAccountId = 'acct_TEST_' + req.user._id.toString().slice(-10);
+        vendor.stripeOnboarded = true;
+        await vendor.save();
+      }
+      return res.json({
+        success: true,
+        message: 'Test mode: Stripe connected (simulated)',
+        stripeAccountId: vendor.stripeAccountId,
+        onboarded: true
+      });
+    }
+
     if (!vendor.stripeAccountId) {
-      const account = await stripe.accounts.create({ type: 'express', email: req.user.email });
+      const account = await stripe.accounts.create({
+        type: 'express',
+        email: req.user.email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true }
+        },
+        business_type: 'individual',
+        metadata: {
+          user_id: req.user._id.toString()
+        }
+      });
       vendor.stripeAccountId = account.id;
       await vendor.save();
     }
+
     const accountLink = await stripe.accountLinks.create({
       account: vendor.stripeAccountId,
-      refresh_url: 'http://localhost:5000/api/payments/connect/onboard',
-      return_url:  'http://localhost:5000/api/payments/connect/status',
+      refresh_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/vendor/stripe/refresh`,
+      return_url:  `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard.html`,
       type: 'account_onboarding'
     });
+
     res.json({ success: true, url: accountLink.url });
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
@@ -25,10 +54,44 @@ const getConnectStatus = async (req, res) => {
   try {
     const vendor = await Vendor.findOne({ user: req.user._id });
     if (!vendor || !vendor.stripeAccountId) return res.json({ success: true, onboarded: false });
+
+    // TEST MODE: Return simulated connected status
+    if (process.env.NODE_ENV === 'development' || process.env.STRIPE_TEST_MODE === 'true') {
+      return res.json({
+        success: true,
+        onboarded: true,
+        detailsSubmitted: true,
+        chargesEnabled: true,
+        stripeAccountId: vendor.stripeAccountId,
+        testMode: true,
+        capabilities: {
+          card_payments: 'active',
+          transfers: 'active'
+        }
+      });
+    }
+
     const account = await stripe.accounts.retrieve(vendor.stripeAccountId);
+
     const onboarded = account.payouts_enabled;
-    if (onboarded && !vendor.stripeOnboarded) { vendor.stripeOnboarded = true; await vendor.save(); }
-    res.json({ success: true, onboarded, stripeAccountId: vendor.stripeAccountId });
+    const detailsSubmitted = account.details_submitted;
+    const chargesEnabled = account.charges_enabled;
+    const requirements = account.requirements;
+
+    if (onboarded && !vendor.stripeOnboarded) {
+      vendor.stripeOnboarded = true;
+      await vendor.save();
+    }
+
+    res.json({
+      success: true,
+      onboarded,
+      detailsSubmitted,
+      chargesEnabled,
+      requirements,
+      stripeAccountId: vendor.stripeAccountId,
+      capabilities: account.capabilities
+    });
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
 

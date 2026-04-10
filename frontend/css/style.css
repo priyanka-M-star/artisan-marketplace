@@ -1,0 +1,505 @@
+/* ============================================================
+   style.css — Design system for the entire Artisan Marketplace
+   This file is shared across ALL pages.
+   ============================================================ */
+
+/* ─────────────────────────────────────────
+   GOOGLE FONTS
+   Cormorant Garamond = elegant display font (headings)
+   DM Sans = clean body font (everything else)
+   ───────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+/* ─────────────────────────────────────────
+   DESIGN TOKENS (CSS Variables)
+   Change these to update the whole site's look
+   ───────────────────────────────────────── */
+:root {
+  /* Colors */
+  --bg:           #F9F7F4;   /* warm off-white background */
+  --bg-card:      #FFFFFF;   /* white card surfaces */
+  --bg-dark:      #1A1714;   /* near-black for dark sections */
+  --ink:          #1A1714;   /* main text color */
+  --ink-muted:    #6B6157;   /* secondary text */
+  --ink-light:    #A09790;   /* placeholder / hint text */
+  --accent:       #C4623A;   /* terracotta — brand color */
+  --accent-light: #F5E8E1;   /* light tint of accent */
+  --accent-dark:  #9A4A2A;   /* darker shade of accent */
+  --success:      #2D7A47;   /* green for success states */
+  --success-bg:   #E8F5EE;
+  --danger:       #B71C1C;   /* red for errors */
+  --danger-bg:    #FFEBEE;
+  --border:       rgba(26,23,20,0.10);   /* subtle border */
+  --border-med:   rgba(26,23,20,0.18);   /* medium border */
+
+  /* Shadows */
+  --shadow-sm:  0 1px 4px rgba(26,23,20,0.07);
+  --shadow-md:  0 4px 20px rgba(26,23,20,0.10);
+  --shadow-lg:  0 12px 40px rgba(26,23,20,0.15);
+
+  /* Spacing / Radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  /* Fonts */
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body:    'DM Sans', sans-serif;
+
+  /* Transition */
+  --transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ─────────────────────────────────────────
+   RESET
+   Remove default browser styles
+   ───────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box; /* padding doesn't add to width */
+  margin: 0;
+  padding: 0;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased; /* makes text look crisper */
+}
+
+/* Make all inputs and buttons use our font */
+input, button, select, textarea { font-family: var(--font-body); }
+
+/* ─────────────────────────────────────────
+   UTILITY CLASSES
+   Small reusable helpers
+   ───────────────────────────────────────── */
+.hidden   { display: none !important; }
+.flex     { display: flex; }
+.center   { align-items: center; justify-content: center; }
+.gap-8    { gap: 8px; }
+.gap-12   { gap: 12px; }
+.gap-16   { gap: 16px; }
+.mt-8     { margin-top: 8px; }
+.mt-16    { margin-top: 16px; }
+.mt-24    { margin-top: 24px; }
+.w-full   { width: 100%; }
+.text-center { text-align: center; }
+.text-muted  { color: var(--ink-muted); font-size: 13px; }
+
+
+/* ─────────────────────────────────────────
+   BUTTONS
+   ───────────────────────────────────────── */
+
+/* Primary button — dark background */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 24px;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary:hover  { background: var(--accent); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary.w-full { width: 100%; }
+
+/* Outlined button — transparent with border */
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-outline.w-full { width: 100%; }
+
+/* Accent button — terracotta fill */
+.btn-accent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 24px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+}
+.btn-accent:hover { background: var(--accent-dark); }
+
+/* Danger button — red */
+.btn-danger {
+  padding: 9px 18px;
+  background: none;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-danger:hover { background: var(--danger); color: white; }
+
+/* Small icon button */
+.btn-icon {
+  width: 36px; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none;
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--ink-muted);
+  transition: var(--transition);
+}
+.btn-icon:hover { background: var(--ink); color: white; border-color: var(--ink); }
+
+
+/* ─────────────────────────────────────────
+   FORM FIELDS
+   ───────────────────────────────────────── */
+.field-group { margin-bottom: 20px; }
+
+.field-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+
+.field-group input,
+.field-group select,
+.field-group textarea {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1px solid var(--border-med);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  font-size: 15px;
+  color: var(--ink);
+  transition: var(--transition);
+  outline: none;
+}
+
+.field-group input:focus,
+.field-group select:focus,
+.field-group textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(196,98,58,0.12);
+}
+
+.field-group input::placeholder,
+.field-group textarea::placeholder { color: var(--ink-light); }
+
+/* Two inputs side by side */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* Password field with show/hide button */
+.password-field { position: relative; }
+.password-field input { padding-right: 64px; }
+.password-toggle {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Error message under a field */
+.field-error {
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: 5px;
+  display: none;
+}
+.field-error.show { display: block; }
+
+
+/* ─────────────────────────────────────────
+   CARDS
+   ───────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+}
+
+.card-lg {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+}
+
+/* Metric card (for dashboard numbers) */
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+}
+.metric-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--ink-light);
+  margin-bottom: 8px;
+}
+.metric-value {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1;
+}
+.metric-sub {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+
+
+/* ─────────────────────────────────────────
+   STATUS BADGES
+   Used on orders to show current status
+   ───────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+.badge-pending    { background: #FFF8E1; color: #F57F17; }
+.badge-processing { background: #E3F2FD; color: #0D47A1; }
+.badge-shipped    { background: #EDE7F6; color: #4527A0; }
+.badge-delivered  { background: #E8F5E9; color: #1B5E20; }
+.badge-cancelled  { background: #FFEBEE; color: #B71C1C; }
+.badge-paid       { background: #E8F5E9; color: #1B5E20; }
+.badge-unpaid     { background: #FFF8E1; color: #F57F17; }
+
+
+/* ─────────────────────────────────────────
+   SHARED HEADER (used on marketplace,
+   dashboard, orders etc.)
+   ───────────────────────────────────────── */
+.site-header {
+  position: sticky;
+  top: 0; z-index: 200;
+  background: rgba(249,247,244,0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 32px;
+  height: 64px;
+}
+
+.site-header .brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.brand-star { color: var(--accent); font-size: 16px; }
+.brand-name {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: none;
+  transition: var(--transition);
+}
+.nav-link:hover, .nav-link.active {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--ink);
+}
+.nav-link.danger:hover { color: var(--danger); }
+
+/* Cart count badge */
+.cart-count {
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* ─────────────────────────────────────────
+   PAGE WRAPPER
+   ───────────────────────────────────────── */
+.page-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 44px;
+  font-weight: 300;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.page-subtitle {
+  font-size: 15px;
+  color: var(--ink-muted);
+  margin-bottom: 32px;
+}
+
+
+/* ─────────────────────────────────────────
+   EMPTY STATE
+   Shown when a list is empty
+   ───────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 80px 40px;
+  color: var(--ink-muted);
+}
+.empty-state .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+.empty-state h3 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.empty-state p { font-size: 14px; margin-bottom: 24px; }
+
+
+/* ─────────────────────────────────────────
+   SECTION LABEL
+   Small uppercase label above sections
+   ───────────────────────────────────────── */
+.section-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  margin-bottom: 16px;
+}
+
+
+/* ─────────────────────────────────────────
+   SCROLLBAR STYLING
+   ───────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(26,23,20,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(26,23,20,0.4); }
+
+
+/* ─────────────────────────────────────────
+   ANIMATIONS
+   ───────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fadeUp { animation: fadeUp 0.5s ease both; }
+.animate-fadeIn { animation: fadeIn 0.4s ease both; }
+
+
+/* ─────────────────────────────────────────
+   RESPONSIVE
+   ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .site-header { padding: 0 16px; gap: 12px; }
+  .page-content { padding: 20px 16px; }
+  .page-title { font-size: 32px; }
+  .field-row { grid-template-columns: 1fr; }
+  .nav-link span:not(.cart-count) { display: none; } /* hide text, keep icons */
+}

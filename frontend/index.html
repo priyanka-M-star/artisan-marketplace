@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    index.html — Login & Register Page
+    This is the FIRST page users see.
+    After login, buyers go to marketplace.html
+    Vendors go to dashboard.html
+  -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artisan — Sign In</title>
+
+  <!-- Our shared CSS -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Page-specific styles (only for this page) -->
+  <style>
+    /* ── AUTH PAGE LAYOUT ──
+       Split screen: dark left panel + form right panel
+    ── */
+    .auth-page {
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* two equal columns */
+      min-height: 100vh;
+    }
+
+    /* ── LEFT PANEL ──
+       Dark branding side with animated brand mark
+    ── */
+    .auth-left {
+      background: var(--bg-dark);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px;
+      position: relative;
+      overflow: hidden; /* clip the decorative circles */
+    }
+
+    /* Decorative glowing circles (pure CSS, no images) */
+    .auth-left::before {
+      content: '';
+      position: absolute;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(196,98,58,0.15) 0%, transparent 70%);
+      top: -100px; right: -100px;
+      pointer-events: none;
+    }
+    .auth-left::after {
+      content: '';
+      position: absolute;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(196,98,58,0.10) 0%, transparent 70%);
+      bottom: -50px; left: -50px;
+      pointer-events: none;
+    }
+
+    /* The brand content on the left */
+    .left-brand {
+      text-align: center;
+      z-index: 1; /* above the decorative circles */
+      animation: fadeUp 0.8s ease both;
+    }
+
+    /* The ✦ spinning star mark */
+    .brand-star-lg {
+      font-size: 48px;
+      color: var(--accent);
+      display: block;
+      margin-bottom: 20px;
+      animation: spin 20s linear infinite;
+      /* We use the spin keyframe from style.css */
+    }
+
+    .left-brand h1 {
+      font-family: var(--font-display);
+      font-size: 80px;
+      font-weight: 300;
+      color: #FFFFFF;
+      letter-spacing: -2px;
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+
+    .left-brand p {
+      font-size: 14px;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      font-weight: 300;
+    }
+
+    /* Category tags at the bottom of left panel */
+    .left-tags {
+      display: flex;
+      gap: 10px;
+      margin-top: 64px;
+      z-index: 1;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp 0.8s 0.2s ease both;
+    }
+    .left-tags span {
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    /* ── RIGHT PANEL ──
+       White form area
+    ── */
+    .auth-right {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      background: var(--bg);
+    }
+
+    /* The form box itself */
+    .auth-box {
+      width: 100%;
+      max-width: 420px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    /* Heading above the form */
+    .auth-heading {
+      margin-bottom: 36px;
+    }
+    .auth-heading h2 {
+      font-family: var(--font-display);
+      font-size: 44px;
+      font-weight: 400;
+      color: var(--ink);
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+    .auth-heading p {
+      color: var(--ink-muted);
+      font-size: 14px;
+    }
+
+    /* Links below the form */
+    .auth-links {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    .auth-links a, .auth-links span {
+      font-size: 13px;
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    .auth-links a:hover, .auth-links span:hover {
+      color: var(--accent-dark);
+    }
+
+    /* Divider line between sections */
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      color: var(--ink-light);
+      font-size: 12px;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-med);
+    }
+
+    /* Role selector (buyer / vendor) */
+    .role-select {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .role-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border: 1px solid var(--border-med);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .role-option:hover { border-color: var(--accent); background: var(--accent-light); }
+    .role-option.selected {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+    .role-option input[type="radio"] { accent-color: var(--accent); }
+    .role-option-text { font-size: 14px; font-weight: 500; color: var(--ink); }
+    .role-option-sub  { font-size: 11px; color: var(--ink-muted); margin-top: 1px; }
+
+    /* Password strength bar */
+    .strength-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+      margin-bottom: 16px;
+    }
+    .strength-track {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    #strengthBar {
+      height: 100%;
+      width: 0%;
+      border-radius: 2px;
+      transition: width 0.3s, background 0.3s;
+    }
+    #strengthLabel {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-muted);
+      white-space: nowrap;
+      min-width: 48px;
+    }
+
+    /* Password rule checklist */
+    .password-rules {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    .rule {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--ink-light);
+      padding: 6px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      transition: var(--transition);
+    }
+    .rule.valid {
+      color: var(--success);
+      background: var(--success-bg);
+      border-color: rgba(45,122,71,0.2);
+    }
+    .rule-icon { font-size: 12px; width: 14px; text-align: center; }
+
+    /* OTP Timer text */
+    #otpTimer {
+      font-size: 12px;
+      color: var(--accent);
+      margin-left: 8px;
+    }
+
+    /* Mobile: stack the two panels */
+    @media (max-width: 900px) {
+      .auth-page { grid-template-columns: 1fr; }
+      .auth-left  { display: none; } /* hide on mobile */
+      .auth-right { padding: 40px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  
+<div class="auth-page">
+
+  <!-- ══════════════════════════════════
+       LEFT PANEL — Brand + Decoration
+       ══════════════════════════════════ -->
+  <div class="auth-left">
+    <div class="left-brand">
+      <span class="brand-star-lg">✦</span>
+      <h1>Artisan</h1>
+      <p>Handcrafted with intention</p>
+    </div>
+    <div class="left-tags">
+      <span>Pottery</span>
+      <span>·</span>
+      <span>Jewelry</span>
+      <span>·</span>
+      <span>Paintings</span>
+      <span>·</span>
+      <span>Crafts</span>
+      <span>·</span>
+      <span>Textiles</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       RIGHT PANEL — Forms
+       ══════════════════════════════════ -->
+  <div class="auth-right">
+
+    <!-- ── LOGIN FORM ── -->
+    <div class="auth-box" id="loginBox">
+      <div class="auth-heading">
+        <h2>Welcome back</h2>
+        <p>Sign in to your Artisan account</p>
+      </div>
+
+      <!-- Email field -->
+      <div class="field-group">
+        <label for="loginEmail">Email address</label>
+        <input
+          type="email"
+          id="loginEmail"
+          placeholder="you@example.com"
+          autocomplete="email"
+        >
+        <!-- Error message shown if validation fails -->
+        <div class="field-error" id="loginEmailError"></div>
+      </div>
+
+      <!-- Password field with Show/Hide toggle -->
+      <div class="field-group">
+        <label for="loginPassword">Password</label>
+        <div class="password-field">
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          >
+          <!-- Clicking Show toggles password visibility -->
+          <span class="password-toggle" onclick="togglePassword('loginPassword', this)">Show</span>
+        </div>
+        <div class="field-error" id="loginPasswordError"></div>
+      </div>
+
+      <!-- Submit button — calls login() function below -->
+      <button class="btn-primary w-full" id="loginBtn" onclick="handleLogin()">
+        Sign In
+      </button>
+
+      <!-- Links to other forms -->
+      <div class="auth-links">
+        <span onclick="showForm('registerBox')">Create account</span>
+        <span onclick="showForm('forgotBox')">Forgot password?</span>
+      </div>
+    </div>
+
+    <!-- ── REGISTER FORM ── -->
+    <div class="auth-box hidden" id="registerBox">
+      <div class="auth-heading">
+        <h2>Join Artisan</h2>
+        <p>Create your account — it's free</p>
+      </div>
+
+      <!-- Full name -->
+      <div class="field-group">
+        <label for="regName">Full name</label>
+        <input type="text" id="regName" placeholder="Your name">
+        <div class="field-error" id="regNameError"></div>
+      </div>
+
+      <!-- Email -->
+      <div class="field-group">
+        <label for="regEmail">Email address</label>
+        <input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email">
+        <div class="field-error" id="regEmailError"></div>
+      </div>
+
+      <!-- Role selector — buyer or vendor -->
+      <div class="field-group">
+        <label>I want to</label>
+        <div class="role-select" id="roleSelect">
+          <!-- Clicking these updates the hidden role value -->
+          <label class="role-option selected" onclick="selectRole('buyer', this)">
+            <input type="radio" name="role" value="buyer" checked>
+            <div>
+              <div class="role-option-text">Shop</div>
+              <div class="role-option-sub">Buy handmade goods</div>
+            </div>
+          </label>
+          <label class="role-option" onclick="selectRole('vendor', this)">
+            <input type="radio" name="role" value="vendor">
+            <div>
+              <div class="role-option-text">Sell</div>
+              <div class="role-option-sub">List my creations</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Password with strength indicator -->
+      <div class="field-group">
+        <label for="regPassword">Create password</label>
+        <div class="password-field">
+          <input
+            type="password"
+            id="regPassword"
+            placeholder="Min 6 chars, uppercase, number, symbol"
+            oninput="checkStrength(this.value)"
+          >
+          <span class="password-toggle" onclick="togglePassword('regPassword', this)">Show</span>
+        </div>
+        <!-- Strength bar -->
+        <div class="strength-row">
+          <div class="strength-track"><div id="strengthBar"></div></div>
+          <span id="strengthLabel"></span>
+        </div>
+        <!-- Rule checklist -->
+        <div class="password-rules">
+          <div class="rule" id="ruleUpper">
+            <span class="rule-icon">✗</span> Uppercase
+          </div>
+          <div class="rule" id="ruleLower">
+            <span class="rule-icon">✗</span> Lowercase
+          </div>
+          <div class="rule" id="ruleNumber">
+            <span class="rule-icon">✗</span> Number
+          </div>
+          <div class="rule" id="ruleSpecial">
+            <span class="rule-icon">✗</span> Symbol (@$!%*?&)
+          </div>
+        </div>
+        <div class="field-error" id="regPasswordError"></div>
+      </div>
+
+      <button class="btn-primary w-full" id="registerBtn" onclick="handleRegister()">
+        Create Account
+      </button>
+
+      <div class="auth-links">
+        <span onclick="showForm('loginBox')">← Back to login</span>
+      </div>
+    </div>
+
+    <!-- ── FORGOT PASSWORD FORM ── -->
+    <div class="auth-box hidden" id="forgotBox">
+      <div class="auth-heading">
+        <h2>Reset password</h2>
+        <p>Enter your email and we'll send an OTP</p>
+      </div>
+
+      <!-- Step 1: Email + send OTP -->
+      <div class="field-group">
+        <label for="forgotEmail">Email address</label>
+        <input type="email" id="forgotEmail" placeholder="you@example.com">
+      </div>
+      <button class="btn-outline w-full" onclick="handleSendOTP()">Send OTP</button>
+
+      <div class="auth-divider">then</div>
+
+      <!-- Step 2: Enter OTP -->
+      <div class="field-group">
+        <label>
+          One-time password
+          <span id="otpTimer"></span>
+        </label>
+        <input type="text" id="otpInput" placeholder="6-digit OTP">
+      </div>
+
+      <!-- Step 3: New password -->
+      <div class="field-group">
+        <label for="newPassword">New password</label>
+        <div class="password-field">
+          <input type="password" id="newPassword" placeholder="Your new password">
+          <span class="password-toggle" onclick="togglePassword('newPassword', this)">Show</span>
+        </div>
+      </div>
+
+      <button class="btn-primary w-full" onclick="handleResetPassword()">
+        Reset Password
+      </button>
+
+      <div class="auth-links">
+        <span onclick="handleSendOTP()">Resend OTP</span>
+        <span onclick="showForm('loginBox')">← Back to login</span>
+      </div>
+    </div>
+
+  </div><!-- end auth-right -->
+</div><!-- end auth-page -->
+
+
+<!-- ══════════════════════════════════
+     JAVASCRIPT
+     All the logic for this page
+     ══════════════════════════════════ -->
+
+<!-- Load api.js first (has apiLogin, apiRegister functions) -->
+<script src="js/api.js"></script>
+
+<!-- Load auth.js second (has saveAuth, redirectIfLoggedIn, showToast) -->
+<script src="js/auth.js"></script>
+
+<!-- Page-specific logic -->
+<script>
+  // ──────────────────────────────────────────
+  // INIT: If already logged in, skip this page
+  // ──────────────────────────────────────────
+  // redirectIfLoggedIn() is in auth.js
+  // It checks localStorage for a token and
+  // sends the user to the right page
+  redirectIfLoggedIn();
+
+
+  // ──────────────────────────────────────────
+  // FORM SWITCHING
+  // Show one form, hide the others
+  // ──────────────────────────────────────────
+  function showForm(id) {
+    // Hide all auth boxes
+    document.querySelectorAll('.auth-box').forEach(box => {
+      box.classList.add('hidden');
+    });
+    // Show the requested one
+    document.getElementById(id).classList.remove('hidden');
+  }
+
+
+  // ──────────────────────────────────────────
+  // ROLE SELECTOR
+  // When user clicks buyer or vendor card
+  // ──────────────────────────────────────────
+  function selectRole(role, clickedLabel) {
+    // Remove 'selected' style from all role options
+    document.querySelectorAll('.role-option').forEach(opt => {
+      opt.classList.remove('selected');
+    });
+    // Add 'selected' to the clicked one
+    clickedLabel.classList.add('selected');
+    // Check the radio input inside the clicked label
+    clickedLabel.querySelector('input[type="radio"]').checked = true;
+  }
+
+  // Get the currently selected role value
+  function getSelectedRole() {
+    const checked = document.querySelector('input[name="role"]:checked');
+    return checked ? checked.value : 'buyer';
+  }
+
+
+  // ──────────────────────────────────────────
+  // TOGGLE PASSWORD VISIBILITY
+  // ──────────────────────────────────────────
+  function togglePassword(inputId, toggleEl) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+      input.type = 'text';
+      toggleEl.textContent = 'Hide';
+    } else {
+      input.type = 'password';
+      toggleEl.textContent = 'Show';
+    }
+  }
+
+
+  // ──────────────────────────────────────────
+  // PASSWORD STRENGTH CHECKER
+  // Runs every time user types in the password field
+  // ──────────────────────────────────────────
+  function checkStrength(value) {
+    // Test each condition using regex
+    const hasUpper   = /[A-Z]/.test(value);   // at least one uppercase
+    const hasLower   = /[a-z]/.test(value);   // at least one lowercase
+    const hasNumber  = /[0-9]/.test(value);   // at least one digit
+    const hasSpecial = /[@$!%*?&]/.test(value); // at least one symbol
+
+    // Update rule UI — add/remove 'valid' class
+    updateRule('ruleUpper',   hasUpper);
+    updateRule('ruleLower',   hasLower);
+    updateRule('ruleNumber',  hasNumber);
+    updateRule('ruleSpecial', hasSpecial);
+
+    // Count how many conditions pass
+    const score = [hasUpper, hasLower, hasNumber, hasSpecial]
+                    .filter(Boolean).length;
+
+    // Update the strength bar
+    const bar   = document.getElementById('strengthBar');
+    const label = document.getElementById('strengthLabel');
+
+    if (value.length === 0) {
+      bar.style.width = '0%';
+      label.textContent = '';
+      return;
+    }
+
+    // Map score (1-4) to visual feedback
+    const levels = [
+      { pct: '25%', color: '#ef5350', text: 'Weak'   },
+      { pct: '50%', color: '#FF9800', text: 'Fair'   },
+      { pct: '75%', color: '#4CAF50', text: 'Good'   },
+      { pct: '100%',color: '#2E7D32', text: 'Strong' },
+    ];
+    const level = levels[score - 1] || levels[0];
+
+    bar.style.width      = level.pct;
+    bar.style.background = level.color;
+    label.textContent    = level.text;
+    label.style.color    = level.color;
+  }
+
+  // Helper: update a single rule item
+  function updateRule(id, isValid) {
+    const el   = document.getElementById(id);
+    const icon = el.querySelector('.rule-icon');
+    if (isValid) {
+      el.classList.add('valid');
+      icon.textContent = '✓';
+    } else {
+      el.classList.remove('valid');
+      icon.textContent = '✗';
+    }
+  }
+
+
+  // ──────────────────────────────────────────
+  // SHOW FIELD ERROR
+  // Display a red error message under a field
+  // ──────────────────────────────────────────
+  function showFieldError(errorId, message) {
+    const el = document.getElementById(errorId);
+    if (el) {
+      el.textContent = message;
+      el.classList.add('show');
+    }
+  }
+
+  // Clear a field error
+  function clearFieldError(errorId) {
+    const el = document.getElementById(errorId);
+    if (el) {
+      el.textContent = '';
+      el.classList.remove('show');
+    }
+  }
+
+  // Clear all field errors in a form
+  function clearAllErrors() {
+    document.querySelectorAll('.field-error').forEach(el => {
+      el.textContent = '';
+      el.classList.remove('show');
+    });
+  }
+
+
+  // ──────────────────────────────────────────
+  // SET BUTTON LOADING STATE
+  // Disable button and show "..." while fetching
+  // ──────────────────────────────────────────
+  function setButtonLoading(btnId, isLoading, originalText) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    if (isLoading) {
+      btn.disabled = true;
+      btn.textContent = 'Please wait...';
+      btn.style.opacity = '0.7';
+    } else {
+      btn.disabled = false;
+      btn.textContent = originalText;
+      btn.style.opacity = '1';
+    }
+  }
+
+
+  // ──────────────────────────────────────────
+  // HANDLE LOGIN
+  // Runs when user clicks "Sign In"
+  // ──────────────────────────────────────────
+  async function handleLogin() {
+    // Clear previous errors
+    clearAllErrors();
+
+    // Get form values
+    const email    = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    // Basic client-side validation before hitting the API
+    let isValid = true;
+    if (!email) {
+      showFieldError('loginEmailError', 'Email is required');
+      isValid = false;
+    }
+    if (!password) {
+      showFieldError('loginPasswordError', 'Password is required');
+      isValid = false;
+    }
+    if (!isValid) return; // stop if validation failed
+
+    // Show loading state on button
+    setButtonLoading('loginBtn', true, 'Sign In');
+
+    try {
+      // ── ACTUAL API CALL ──
+      // apiLogin() is defined in js/api.js
+      // It calls POST http://localhost:5000/api/auth/login
+      // and returns { token, user: { id, name, email, role } }
+      const response = await apiLogin(email, password);
+
+      // Save token and user in localStorage
+      // saveAuth() is in js/auth.js
+      saveAuth(response.token, response.user);
+
+      // Show success message
+      showToast('Welcome back! ✦', 'success');
+
+      // Wait 500ms then redirect based on role
+      setTimeout(() => {
+        if (response.user.role === 'vendor') {
+          window.location.href = 'dashboard.html';  // vendor goes to dashboard
+        } else {
+          window.location.href = 'marketplace.html'; // buyer goes to marketplace
+        }
+      }, 500);
+
+    } catch (error) {
+      // error.message comes from our backend's JSON response
+      // e.g. "Invalid email or password"
+      showToast(error.message || 'Login failed', 'error');
+      setButtonLoading('loginBtn', false, 'Sign In');
+    }
+  }
+
+
+  // ──────────────────────────────────────────
+  // HANDLE REGISTER
+  // Runs when user clicks "Create Account"
+  // ──────────────────────────────────────────
+  async function handleRegister() {
+    clearAllErrors();
+
+    const name     = document.getElementById('regName').value.trim();
+    const email    = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const role     = getSelectedRole(); // 'buyer' or 'vendor'
+
+    // Validation
+    let isValid = true;
+    if (!name) {
+      showFieldError('regNameError', 'Name is required');
+      isValid = false;
+    }
+    if (!email) {
+      showFieldError('regEmailError', 'Email is required');
+      isValid = false;
+    }
+
+    // Password must meet all 4 rules
+    const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{6,}$/;
+    if (!strongPassword.test(password)) {
+      showFieldError('regPasswordError', 'Password must have uppercase, lowercase, number and symbol');
+      isValid = false;
+    }
+
+    if (!isValid) return;
+
+    setButtonLoading('registerBtn', true, 'Create Account');
+
+    try {
+      // ── ACTUAL API CALL ──
+      // apiRegister() is in js/api.js
+      // Calls POST http://localhost:5000/api/auth/register
+      const response = await apiRegister(name, email, password, role);
+
+      // Save token + user
+      saveAuth(response.token, response.user);
+
+      showToast('Account created! ✦', 'success');
+
+      // Redirect based on role
+      setTimeout(() => {
+        if (response.user.role === 'vendor') {
+          window.location.href = 'dashboard.html';
+        } else {
+          window.location.href = 'marketplace.html';
+        }
+      }, 500);
+
+    } catch (error) {
+      showToast(error.message || 'Registration failed', 'error');
+      setButtonLoading('registerBtn', false, 'Create Account');
+    }
+  }
+
+
+  // ──────────────────────────────────────────
+  // OTP / FORGOT PASSWORD
+  // These are purely frontend — in a real app
+  // your backend would send the email.
+  // For now we generate OTP and show it.
+  // ──────────────────────────────────────────
+  let _otp = '';
+  let _otpExpiry = 0;
+
+  function handleSendOTP() {
+    const email = document.getElementById('forgotEmail').value.trim();
+    if (!email) return showToast('Enter your email first', 'error');
+
+    // Generate a 6-digit OTP (in real app, backend sends this via email)
+    _otp = Math.floor(100000 + Math.random() * 900000).toString();
+    _otpExpiry = Date.now() + 60000; // expires in 60 seconds
+
+    // Show OTP in toast (in production, backend emails it)
+    showToast('OTP sent! For testing: ' + _otp, 'success');
+    console.log('OTP (testing):', _otp);
+
+    // Start countdown timer
+    startOTPCountdown();
+  }
+
+  function startOTPCountdown() {
+    const timerEl = document.getElementById('otpTimer');
+    const interval = setInterval(() => {
+      const secondsLeft = Math.floor((_otpExpiry - Date.now()) / 1000);
+      if (secondsLeft <= 0) {
+        timerEl.textContent = '— Expired';
+        clearInterval(interval);
+      } else {
+        timerEl.textContent = `— ${secondsLeft}s`;
+      }
+    }, 1000);
+  }
+
+  function handleResetPassword() {
+    const otp     = document.getElementById('otpInput').value.trim();
+    const newPass = document.getElementById('newPassword').value;
+
+    if (!otp || !newPass) return showToast('Fill all fields', 'error');
+    if (otp !== _otp)      return showToast('Wrong OTP', 'error');
+    if (Date.now() > _otpExpiry) return showToast('OTP expired. Request a new one.', 'error');
+
+    // In a real app: call backend API to update password
+    // For now just show success and redirect to login
+    showToast('Password reset! Please login again.', 'success');
+    setTimeout(() => showForm('loginBox'), 1500);
+  }
+
+
+  // ──────────────────────────────────────────
+  // KEYBOARD SHORTCUTS
+  // Press Enter in password field to submit
+  // ──────────────────────────────────────────
+  document.getElementById('loginPassword').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleLogin();
+  });
+  document.getElementById('regPassword').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleRegister();
+  });
+
+</script>
+</body>
+</html>

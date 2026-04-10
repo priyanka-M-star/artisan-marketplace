@@ -67,4 +67,31 @@ const getOrderById = async (req, res) => {
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
 
-module.exports = { placeOrder, getMyOrders, getVendorOrders, updateOrderStatus, getOrderById };
+const cancelOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    // Check if buyer owns this order
+    if (order.buyer.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to cancel this order' });
+    }
+
+    // Only pending orders can be cancelled
+    if (order.status !== 'pending') {
+      return res.status(400).json({ message: `Cannot cancel order with status: ${order.status}` });
+    }
+
+    order.status = 'cancelled';
+    await order.save();
+
+    // Restore product stock
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } });
+    }
+
+    res.json({ success: true, message: 'Order cancelled successfully', data: order });
+  } catch (error) { res.status(500).json({ message: error.message }); }
+};
+
+module.exports = { placeOrder, getMyOrders, getVendorOrders, updateOrderStatus, getOrderById, cancelOrder };

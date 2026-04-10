@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artisan — My Orders</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .orders-list{max-width:800px;}
+    .order-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:16px;transition:var(--transition);animation:fadeUp 0.4s ease both;}
+    .order-card:hover{border-color:var(--border-med);box-shadow:var(--shadow-sm);}
+    .order-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+    .order-id{font-size:15px;font-weight:500;}
+    .order-date{font-size:13px;color:var(--ink-light);margin-bottom:14px;}
+    .order-items-list{border-top:1px solid var(--border);padding-top:12px;margin-bottom:14px;}
+    .order-item-row{display:grid;grid-template-columns:1fr 60px 100px;font-size:14px;padding:6px 0;border-bottom:1px solid var(--border);}
+    .order-item-row:last-child{border-bottom:none;}
+    .item-qty{text-align:center;color:var(--ink-muted);}
+    .item-price{text-align:right;font-weight:500;}
+    .order-footer{display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border);}
+    .order-total{font-size:15px;font-weight:500;}
+    .order-address{font-size:12px;color:var(--ink-muted);margin-top:6px;}
+    .cancel-btn{padding:8px 16px;font-size:13px;background:transparent;border:1px solid #d32f2f;color:#d32f2f;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition);}
+    .cancel-btn:hover{background:#d32f2f;color:white;}
+    .cancel-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <a href="marketplace.html" class="brand"><span class="brand-star">✦</span><span class="brand-name">Artisan</span></a>
+  <nav class="header-nav">
+    <a href="marketplace.html" class="nav-link">← Back to Shop</a>
+    <button class="nav-link" onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="page-content">
+  <div class="page-title">Your Orders</div>
+  <p class="page-subtitle">Track all your purchases</p>
+
+  <div class="orders-list" id="ordersList">
+    <div class="empty-state">
+      <div class="empty-icon">◈</div>
+      <p>Loading orders...</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+requireAuth();
+
+window.onload = loadOrders;
+
+async function loadOrders() {
+  try {
+    // GET /api/orders — buyer's own orders
+    const res = await apiGetMyOrders();
+    const orders = res.data || [];
+
+    const el = document.getElementById('ordersList');
+
+    if (!orders.length) {
+      el.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">◈</div>
+        <h3>No orders yet</h3>
+        <p>Start shopping to see your orders here</p>
+        <a href="marketplace.html" class="btn-primary" style="margin-top:20px;">Browse Products</a>
+      </div>`;
+      return;
+    }
+
+    el.innerHTML = orders.reverse().map((o, i) => {
+      const canCancel = o.status === 'pending' || o.status === 'processing';
+      return `
+      <div class="order-card" style="animation-delay:${i*0.05}s">
+        <div class="order-top">
+          <span class="order-id">${o._id.slice(-8).toUpperCase()}</span>
+          <span class="badge badge-${o.status.toLowerCase()}">${o.status}</span>
+        </div>
+        <div class="order-date">${new Date(o.createdAt).toLocaleString()}</div>
+
+        <div class="order-items-list">
+          ${o.items.map(item => `
+            <div class="order-item-row">
+              <span>${item.product?.title || 'Product'}</span>
+              <span class="item-qty">× ${item.quantity}</span>
+              <span class="item-price">₹${(item.price * item.quantity).toLocaleString()}</span>
+            </div>`).join('')}
+        </div>
+
+        <div class="order-footer">
+          <div>
+            <div class="order-total">Total: ₹${o.totalAmount.toLocaleString()}</div>
+            <div class="order-address">
+              📍 ${o.shippingAddress?.street}, ${o.shippingAddress?.city}, ${o.shippingAddress?.state} - ${o.shippingAddress?.pincode}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge badge-${o.paymentStatus === 'paid' ? 'paid' : 'unpaid'}">
+              ${o.paymentStatus === 'paid' ? '✓ Paid' : 'Unpaid'}
+            </span>
+            ${canCancel ? `<button class="cancel-btn" onclick="cancelOrder('${o._id}')">Cancel Order</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+  } catch (err) {
+    document.getElementById('ordersList').innerHTML =
+      `<div class="empty-state"><div class="empty-icon">◈</div><p>${err.message}</p></div>`;
+  }
+}
+
+async function cancelOrder(orderId) {
+  if (!confirm('Are you sure you want to cancel this order?')) return;
+
+  try {
+    showLoading();
+    const response = await fetch(BASE_URL + '/api/orders/' + orderId + '/cancel', {
+      method: 'PATCH',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
+      }
+    });
+    const data = await response.json();
+    hideLoading();
+
+    if (!response.ok) throw new Error(data.message || 'Failed to cancel order');
+
+    showToast('Order cancelled successfully', 'success');
+
+    // Reload orders to show updated status
+    await loadOrders();
+  } catch (err) {
+    hideLoading();
+    showToast(err.message || 'Failed to cancel order', 'error');
+  }
+}
+</script>
+</body>
+</html>

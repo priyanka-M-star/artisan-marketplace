@@ -41,11 +41,24 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders',   orderRoutes);
 app.use('/api/shipping', shippingRoutes);
 
+const path = require('path');
+
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+// Frontend routes - serve HTML pages
+app.get('/dashboard.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dashboard.html'));
+});
+app.get('/vendor/stripe/success', (req, res) => {
+  res.redirect('/dashboard.html');
+});
+app.get('/vendor/stripe/refresh', (req, res) => {
+  res.redirect('/dashboard.html');
+});
+
 app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Artisan Marketplace API is running!'
-  });
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
 app.use((req, res) => {

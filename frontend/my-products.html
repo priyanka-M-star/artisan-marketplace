@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artisan — My Products</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .products-table{width:100%;border-collapse:collapse;background:var(--bg-card);border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border);}
+    .products-table th{padding:12px 16px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.6px;color:var(--ink-light);background:var(--bg);text-align:left;border-bottom:1px solid var(--border);}
+    .products-table td{padding:14px 16px;font-size:14px;color:var(--ink);border-bottom:1px solid var(--border);vertical-align:middle;}
+    .products-table tr:last-child td{border-bottom:none;}
+    .products-table tr:hover td{background:var(--bg);}
+    .prod-thumb{width:48px;height:48px;border-radius:6px;object-fit:cover;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:20px;}
+    .stock-low{color:var(--accent);font-weight:500;}
+    .stock-ok{color:var(--success);}
+    .modal-overlay{position:fixed;inset:0;background:rgba(26,23,20,0.5);z-index:400;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;}
+    .modal{background:var(--bg-card);border-radius:var(--radius-lg);padding:32px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;animation:fadeUp 0.3s ease;}
+    .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+    .modal-head h3{font-family:var(--font-display);font-size:26px;font-weight:400;}
+    .modal-close{background:none;border:1px solid var(--border);border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition);}
+    .modal-close:hover{background:var(--ink);color:white;border-color:var(--ink);}
+    .img-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+    .img-preview img{width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);}
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <a href="dashboard.html" class="brand"><span class="brand-star">✦</span><span class="brand-name">Artisan</span></a>
+  <nav class="header-nav">
+    <a href="dashboard.html" class="nav-link">Dashboard</a>
+    <a href="vendor-orders.html" class="nav-link">Orders</a>
+    <button class="nav-link" onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="page-content">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <div class="page-title">My Products</div>
+    <button class="btn-primary" onclick="openModal()">+ Add Product</button>
+  </div>
+  <p class="page-subtitle">Manage your product listings</p>
+
+  <div id="tableWrap">
+    <div class="empty-state"><div class="empty-icon">◈</div><p>Loading products...</p></div>
+  </div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div id="modal" style="display:none;">
+  <div class="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <h3 id="modalTitle">Add Product</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+
+      <input type="hidden" id="editId">
+
+      <div class="field-group"><label>Product Title</label><input id="pTitle" placeholder="Handmade clay pot"></div>
+      <div class="field-group"><label>Description</label>
+        <textarea id="pDesc" placeholder="Describe your product..." style="height:80px;resize:none;width:100%;padding:12px 16px;border:1px solid var(--border-med);border-radius:var(--radius-sm);font-size:15px;color:var(--ink);background:var(--bg-card);outline:none;"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label>Price (₹)</label><input type="number" id="pPrice" placeholder="500"></div>
+        <div class="field-group"><label>Stock</label><input type="number" id="pStock" placeholder="10"></div>
+      </div>
+      <div class="field-group">
+        <label>Category</label>
+        <select id="pCategory" style="width:100%;padding:13px 16px;border:1px solid var(--border-med);border-radius:var(--radius-sm);background:var(--bg-card);font-size:15px;color:var(--ink);">
+          <option value="jewellery">Jewellery</option>
+          <option value="clothing">Clothing</option>
+          <option value="art">Art</option>
+          <option value="home-decor">Home Decor</option>
+          <option value="food">Food</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Product Images</label>
+        <input type="file" id="pImages" multiple accept="image/*" onchange="previewImages(this)">
+        <div class="img-preview" id="imgPreview"></div>
+      </div>
+
+      <button class="btn-primary w-full" id="saveBtn" onclick="saveProduct()" style="margin-top:8px;">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+requireVendor();
+
+let allProducts = [];
+
+window.onload = loadProducts;
+
+async function loadProducts() {
+  try {
+    // Get only this vendor's products by filtering with vendor ID
+    const user = getUser();
+    const res  = await apiGetProducts({ limit: 100 });
+    // Filter to show only current vendor's products
+    allProducts = (res.data || []).filter(p => p.vendor?._id === user.id || p.vendor === user.id);
+    renderTable();
+  } catch(err) {
+    document.getElementById('tableWrap').innerHTML =
+      `<div class="empty-state"><div class="empty-icon">◈</div><p>${err.message}</p></div>`;
+  }
+}
+
+function renderTable() {
+  const el = document.getElementById('tableWrap');
+  if (!allProducts.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">◈</div>
+      <h3>No products yet</h3>
+      <p>Add your first product to start selling</p>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <table class="products-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${allProducts.map(p => `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:12px;">
+                ${p.images?.length
+                  ? `<img src="${p.images[0]}" class="prod-thumb" alt="${p.title}">`
+                  : `<div class="prod-thumb">🎨</div>`}
+                <div>
+                  <div style="font-weight:500;">${p.title}</div>
+                  <div style="font-size:12px;color:var(--ink-muted);">${p.description?.slice(0,40) || ''}...</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge" style="background:var(--accent-light);color:var(--accent);">${p.category}</span></td>
+            <td style="font-weight:500;">₹${p.price.toLocaleString()}</td>
+            <td class="${p.stock < 5 ? 'stock-low' : 'stock-ok'}">${p.stock} ${p.stock < 5 ? '⚠' : '✓'}</td>
+            <td>
+              <div style="display:flex;gap:6px;">
+                <button class="btn-icon" onclick="editProduct('${p._id}')" title="Edit">✏</button>
+                <button class="btn-danger" onclick="deleteProduct('${p._id}','${p.title.replace(/'/g,"\\'")}')">Delete</button>
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function openModal(id) {
+  document.getElementById('editId').value  = '';
+  document.getElementById('pTitle').value  = '';
+  document.getElementById('pDesc').value   = '';
+  document.getElementById('pPrice').value  = '';
+  document.getElementById('pStock').value  = '';
+  document.getElementById('imgPreview').innerHTML = '';
+  document.getElementById('modalTitle').textContent = 'Add Product';
+  document.getElementById('saveBtn').textContent    = 'Add Product';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function editProduct(id) {
+  const p = allProducts.find(x => x._id === id);
+  if (!p) return;
+  document.getElementById('editId').value            = p._id;
+  document.getElementById('pTitle').value            = p.title;
+  document.getElementById('pDesc').value             = p.description;
+  document.getElementById('pPrice').value            = p.price;
+  document.getElementById('pStock').value            = p.stock;
+  document.getElementById('pCategory').value         = p.category;
+  document.getElementById('modalTitle').textContent  = 'Edit Product';
+  document.getElementById('saveBtn').textContent     = 'Save Changes';
+  document.getElementById('imgPreview').innerHTML = p.images?.map(img =>
+    `<img src="${img}" alt="">`).join('') || '';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+
+function previewImages(input) {
+  const preview = document.getElementById('imgPreview');
+  preview.innerHTML = '';
+  Array.from(input.files).forEach(file => {
+    const url = URL.createObjectURL(file);
+    preview.innerHTML += `<img src="${url}" alt="preview">`;
+  });
+}
+
+async function saveProduct() {
+  const id       = document.getElementById('editId').value;
+  const title    = document.getElementById('pTitle').value.trim();
+  const desc     = document.getElementById('pDesc').value.trim();
+  const price    = document.getElementById('pPrice').value;
+  const stock    = document.getElementById('pStock').value;
+  const category = document.getElementById('pCategory').value;
+  const files    = document.getElementById('pImages').files;
+
+  if (!title || !desc || !price || !stock) {
+    return showToast('Please fill all required fields', 'error');
+  }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled    = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    if (id) {
+      // EDIT existing product
+      await apiUpdateProduct(id, { title, description: desc, price: Number(price), stock: Number(stock), category });
+      showToast('Product updated ✓', 'success');
+    } else {
+      // CREATE new product — uses FormData for image upload
+      const fd = new FormData();
+      fd.append('title',       title);
+      fd.append('description', desc);
+      fd.append('price',       price);
+      fd.append('stock',       stock);
+      fd.append('category',    category);
+      Array.from(files).forEach(f => fd.append('images', f));
+      await apiCreateProduct(fd);
+      showToast('Product added ✓', 'success');
+    }
+
+    closeModal();
+    loadProducts();
+  } catch (err) {
+    showToast(err.message || 'Failed to save product', 'error');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = id ? 'Save Changes' : 'Add Product';
+  }
+}
+
+async function deleteProduct(id, title) {
+  if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  try {
+    await apiDeleteProduct(id);
+    showToast('Product deleted', 'success');
+    loadProducts();
+  } catch (err) {
+    showToast(err.message || 'Could not delete product', 'error');
+  }
+}
+</script>
+</body>
+</html>

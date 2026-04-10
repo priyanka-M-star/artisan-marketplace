@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artisan — Shipping</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .shipping-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:28px;max-width:700px;}
+    .zone-row{display:grid;grid-template-columns:1fr 1fr 80px 40px;gap:12px;align-items:end;margin-bottom:12px;}
+    .zone-row-head{display:grid;grid-template-columns:1fr 1fr 80px 40px;gap:12px;margin-bottom:6px;}
+    .zone-head-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.6px;color:var(--ink-muted);}
+    .remove-zone-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid var(--border-med);border-radius:var(--radius-sm);font-size:16px;cursor:pointer;color:var(--ink-muted);transition:var(--transition);align-self:end;}
+    .remove-zone-btn:hover{background:var(--danger);color:white;border-color:var(--danger);}
+    .add-zone-btn{width:100%;padding:10px;border:1.5px dashed var(--border-med);background:none;border-radius:var(--radius-sm);font-size:13px;color:var(--ink-muted);cursor:pointer;margin-top:4px;font-family:var(--font-body);transition:var(--transition);}
+    .add-zone-btn:hover{border-color:var(--accent);color:var(--accent);}
+    .stripe-card{background:var(--bg-dark);border-radius:var(--radius-md);padding:24px;max-width:700px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+    .stripe-card strong{color:white;font-size:15px;display:block;margin-bottom:4px;}
+    .stripe-card p{color:rgba(255,255,255,0.6);font-size:13px;}
+    .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+    .dot-green{background:#4CAF50;} .dot-orange{background:#FF9800;}
+    .setup-banner{background:var(--accent-light);border:1px solid rgba(196,98,58,0.25);border-radius:var(--radius-md);padding:20px 24px;max-width:700px;margin-bottom:20px;}
+    .setup-banner h4{font-size:15px;font-weight:500;color:var(--accent-dark);margin-bottom:4px;}
+    .setup-banner p{font-size:13px;color:var(--ink-muted);margin-bottom:14px;}
+    .setup-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+    .setup-row input{flex:1;min-width:200px;padding:11px 14px;border:1px solid var(--border-med);border-radius:var(--radius-sm);font-size:14px;color:var(--ink);background:var(--bg-card);}
+    @media(max-width:600px){.zone-row{grid-template-columns:1fr 1fr;}.zone-row-head{display:none;}}
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <a href="dashboard.html" class="brand"><span class="brand-star">✦</span><span class="brand-name">Artisan</span></a>
+  <nav class="header-nav">
+    <a href="dashboard.html" class="nav-link">Dashboard</a>
+    <a href="my-products.html" class="nav-link">Products</a>
+    <a href="vendor-orders.html" class="nav-link">Orders</a>
+    <button class="nav-link" onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="page-content">
+  <div class="page-title">Shipping & Payouts</div>
+  <p class="page-subtitle">Configure your shipping zones and connect Stripe for payouts</p>
+
+  <!--
+    SETUP BANNER — shown only when vendor has NO shop profile yet
+    The Stripe onboard API needs a vendor profile to exist first.
+    This banner auto-creates the profile before allowing Stripe connect.
+  -->
+  <div class="setup-banner" id="setupBanner" style="display:none;">
+    <h4>⚠ Create your shop profile first</h4>
+    <p>A shop name is required before connecting Stripe. Enter it below to continue.</p>
+    <div class="setup-row">
+      <input type="text" id="shopNameInput" placeholder="e.g. Priya's Art Studio">
+      <button class="btn-primary" onclick="createVendorProfile()">Save & Continue</button>
+    </div>
+  </div>
+
+  <!-- STRIPE CONNECT CARD -->
+  <div class="stripe-card">
+    <div>
+      <strong>Stripe Payout Account</strong>
+      <p id="stripeStatusText">Checking status...</p>
+    </div>
+    <button class="btn-accent" id="stripeBtn" onclick="handleStripe()">Connect Stripe →</button>
+  </div>
+
+  <!-- SHIPPING ZONES FORM -->
+  <div class="shipping-card">
+    <h3 style="font-family:var(--font-display);font-size:22px;font-weight:400;margin-bottom:6px;">Shipping Zones</h3>
+    <p style="font-size:14px;color:var(--ink-muted);margin-bottom:24px;">Set flat-rate shipping for different regions.</p>
+
+    <div class="zone-row-head">
+      <span class="zone-head-label">Zone Name</span>
+      <span class="zone-head-label">States (comma separated)</span>
+      <span class="zone-head-label">Rate (₹)</span>
+      <span></span>
+    </div>
+
+    <div id="zonesContainer"></div>
+    <button class="add-zone-btn" onclick="addZone()">+ Add Shipping Zone</button>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:24px 0;">
+
+    <div class="field-group" style="max-width:260px;">
+      <label>Free Shipping Above (₹)</label>
+      <input type="number" id="freeShipping" placeholder="e.g. 1000">
+    </div>
+
+    <button class="btn-primary" id="saveBtn" onclick="saveShipping()" style="margin-top:8px;">
+      Save Shipping Profile
+    </button>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+requireVendor();
+
+let stripeOnboarded  = false;
+let hasVendorProfile = false;
+
+window.onload = async function() {
+  const user = getUser();
+
+  // 1. Check if this vendor already has a profile
+  try {
+    const vp = await apiGetVendorProfile();
+    if (vp.data && vp.data.shopName) {
+      hasVendorProfile = true;
+    } else {
+      showSetupBanner(user.name);
+    }
+  } catch(e) {
+    // No profile exists — show banner
+    showSetupBanner(user.name);
+  }
+
+  // 2. Check Stripe connection status
+  try {
+    const stripe = await apiGetStripeStatus();
+    stripeOnboarded = stripe.onboarded;
+    updateStripeUI(stripe.onboarded);
+  } catch(e) {
+    updateStripeUI(false);
+  }
+
+  // 3. Load any existing shipping zones
+  try {
+    const res = await apiGetShipping();
+    if (res.data && res.data.zones?.length) {
+      document.getElementById('freeShipping').value = res.data.freeShippingAbove || 0;
+      document.getElementById('zonesContainer').innerHTML = '';
+      res.data.zones.forEach(z => addZone(z.name, z.states?.join(', '), z.rate));
+      return;
+    }
+  } catch(e) {}
+
+  addZone(); // default empty row
+};
+
+function showSetupBanner(name) {
+  const banner = document.getElementById('setupBanner');
+  const input  = document.getElementById('shopNameInput');
+  banner.style.display = 'block';
+  input.value = (name || 'My') + "'s Shop";
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Creates vendor profile (shop name) in the database
+// The backend needs this before Stripe onboarding can work
+async function createVendorProfile() {
+  const shopName = document.getElementById('shopNameInput').value.trim();
+  if (!shopName) return showToast('Enter a shop name', 'error');
+
+  const btn = event.target;
+  btn.disabled    = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    // PUT /api/vendors/me — creates vendor profile with shopName
+    await apiUpdateVendorProfile({ shopName, description: 'Handcrafted artisan goods' });
+    hasVendorProfile = true;
+    document.getElementById('setupBanner').style.display = 'none';
+    showToast('Shop profile created! Now connect Stripe ✓', 'success');
+  } catch(err) {
+    showToast(err.message || 'Could not save profile', 'error');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'Save & Continue';
+  }
+}
+
+function updateStripeUI(onboarded) {
+  const text = document.getElementById('stripeStatusText');
+  const btn  = document.getElementById('stripeBtn');
+  if (onboarded) {
+    text.innerHTML  = `<span class="status-dot dot-green"></span>Connected — payouts enabled`;
+    btn.textContent = 'View Dashboard →';
+    btn.style.background = '#2D7A47';
+  } else {
+    text.innerHTML  = `<span class="status-dot dot-orange"></span>Not connected — set up to receive payments`;
+    btn.textContent = 'Connect Stripe →';
+  }
+}
+
+async function handleStripe() {
+  // Guard: must have vendor profile first
+  if (!hasVendorProfile) {
+    document.getElementById('setupBanner').style.display = 'block';
+    document.getElementById('shopNameInput').focus();
+    showToast('Create your shop profile first ↑', 'error');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
+  const btn = document.getElementById('stripeBtn');
+  btn.disabled    = true;
+  btn.textContent = 'Opening Stripe...';
+
+  try {
+    const res = await apiOnboardVendor();
+    if (res.url) {
+      showToast('Opening Stripe setup in new tab...', 'success');
+      window.open(res.url, '_blank');
+    }
+  } catch(err) {
+    showToast(err.message || 'Could not open Stripe', 'error');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = stripeOnboarded ? 'View Dashboard →' : 'Connect Stripe →';
+  }
+}
+
+function addZone(name='', states='', rate='') {
+  const container = document.getElementById('zonesContainer');
+  const row = document.createElement('div');
+  row.className = 'zone-row';
+  row.innerHTML = `
+    <div><input placeholder="e.g. South India" value="${name}" class="zone-name"
+      style="width:100%;padding:10px 12px;border:1px solid var(--border-med);border-radius:var(--radius-sm);font-size:14px;color:var(--ink);background:var(--bg-card);"></div>
+    <div><input placeholder="Tamil Nadu, Kerala" value="${states}" class="zone-states"
+      style="width:100%;padding:10px 12px;border:1px solid var(--border-med);border-radius:var(--radius-sm);font-size:14px;color:var(--ink);background:var(--bg-card);"></div>
+    <div><input type="number" placeholder="50" value="${rate}" class="zone-rate"
+      style="width:100%;padding:10px 12px;border:1px solid var(--border-med);border-radius:var(--radius-sm);font-size:14px;color:var(--ink);background:var(--bg-card);"></div>
+    <button class="remove-zone-btn" onclick="this.closest('.zone-row').remove()">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+async function saveShipping() {
+  const rows  = document.querySelectorAll('.zone-row');
+  const zones = [];
+  rows.forEach(row => {
+    const name   = row.querySelector('.zone-name').value.trim();
+    const states = row.querySelector('.zone-states').value.split(',').map(s=>s.trim()).filter(Boolean);
+    const rate   = Number(row.querySelector('.zone-rate').value);
+    if (name && rate >= 0) zones.push({ name, states, rate });
+  });
+  const freeShippingAbove = Number(document.getElementById('freeShipping').value) || 0;
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    await apiSaveShipping(zones, freeShippingAbove);
+    showToast('Shipping profile saved ✓', 'success');
+  } catch(err) {
+    showToast(err.message || 'Could not save shipping', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Shipping Profile';
+  }
+}
+</script>
+</body>
+</html>
