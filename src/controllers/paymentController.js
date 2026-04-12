@@ -98,21 +98,55 @@ const getConnectStatus = async (req, res) => {
 const checkout = async (req, res) => {
   try {
     const { orderId } = req.body;
-    const order = await Order.findById(orderId).populate('items.vendor');
+    const order = await Order.findById(orderId).populate('items.product');
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    const vendorId = order.items[0].vendor;
-    const vendor   = await Vendor.findOne({ user: vendorId });
-    if (!vendor?.stripeAccountId) return res.status(400).json({ message: 'Vendor has not completed Stripe setup' });
-    const commission   = Number(process.env.PLATFORM_COMMISSION) || 10;
-    const amountPaise  = Math.round(order.totalAmount * 100);
-    const platformFee  = Math.round(amountPaise * commission / 100);
+
+    const commission = Number(process.env.PLATFORM_COMMISSION) || 10;
+
+    // TEST MODE: Return simulated payment intent for development
+    // No real Stripe account needed - works out of the box
+    if (process.env.NODE_ENV === 'development' || process.env.STRIPE_TEST_MODE === 'true') {
+      await Order.findByIdAndUpdate(orderId, {
+        stripePaymentId: 'pi_test_' + orderId,
+        paymentStatus: 'pending'
+      });
+      return res.json({
+        success: true,
+        clientSecret: 'pi_test_' + orderId + '_secret',
+        breakdown: {
+          total: order.totalAmount,
+          commission: order.totalAmount * commission / 100,
+          vendorGets: order.totalAmount * (100 - commission) / 100
+        },
+        testMode: true,
+        message: 'Test mode: Use "I\'ve Paid" button to complete'
+      });
+    }
+
+    // PRODUCTION: Real Stripe flow
+    const vendorId = order.items[0].product.vendor;
+    const vendor = await Vendor.findOne({ user: vendorId });
+    if (!vendor?.stripeAccountId) {
+      return res.status(400).json({ message: 'Vendor has not completed Stripe setup' });
+    }
+
+    const amountPaise = Math.round(order.totalAmount * 100);
+    const platformFee = Math.round(amountPaise * commission / 100);
     const vendorAmount = amountPaise - platformFee;
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountPaise, currency: 'inr',
-      transfer_data: { destination: vendor.stripeAccountId, amount: vendorAmount },
+      amount: amountPaise,
+      currency: 'inr',
+      payment_method_types: ['card', 'upi'],
+      transfer_data: {
+        destination: vendor.stripeAccountId,
+        amount: vendorAmount
+      },
       metadata: { orderId: orderId.toString() }
     });
+
     await Order.findByIdAndUpdate(orderId, { stripePaymentId: paymentIntent.id });
+
     res.json({
       success: true,
       clientSecret: paymentIntent.client_secret,
@@ -122,7 +156,9 @@ const checkout = async (req, res) => {
         vendorGets: order.totalAmount * (100 - commission) / 100
       }
     });
-  } catch (error) { res.status(500).json({ message: error.message }); }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 const stripeWebhook = async (req, res) => {
@@ -151,4 +187,40 @@ const stripeWebhook = async (req, res) => {
   res.json({ received: true });
 };
 
-module.exports = { onboardVendor, getConnectStatus, checkout, stripeWebhook };
+// Manual payment confirmation (for test mode / UPI without webhook)
+const confirmPayment = async (req, res) => {
+  try {
+    const { orderId } = req.body;
+    if (!orderId) return res.status(400).json({ message: 'Order ID required' });
+
+    // In test mode, just mark as paid
+    if (process.env.NODE_ENV === 'development' || process.env.STRIPE_TEST_MODE === 'true') {
+      await Order.findByIdAndUpdate(orderId, {
+        paymentStatus: 'paid',
+        status: 'processing'
+      });
+      return res.json({ success: true, message: 'Payment confirmed (test mode)' });
+    }
+
+    // In production, verify with Stripe first
+    const order = await Order.findById(orderId);
+    if (!order || !order.stripePaymentId) {
+      return res.status(404).json({ message: 'Order or payment not found' });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(order.stripePaymentId);
+    if (paymentIntent.status === 'succeeded') {
+      await Order.findByIdAndUpdate(orderId, {
+        paymentStatus: 'paid',
+        status: 'processing'
+      });
+      return res.json({ success: true, message: 'Payment confirmed' });
+    }
+
+    res.json({ success: false, message: 'Payment not yet completed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { onboardVendor, getConnectStatus, checkout, stripeWebhook, confirmPayment };

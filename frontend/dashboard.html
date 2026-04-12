@@ -143,7 +143,9 @@ window.onload = async function() {
     ]);
 
     const orders   = ordersRes.data || [];
-    const products = productsRes.data || [];
+    const products = (productsRes.data || []).filter(
+      p => p.vendor?._id === user.id || p.vendor === user.id
+    );
 
     // Calculate metrics
     const revenue = orders
@@ -180,7 +182,14 @@ window.onload = async function() {
 async function connectStripe() {
   try {
     const res = await apiOnboardVendor();
-    if (res.url) window.open(res.url, '_blank');
+    if (res.url) {
+      window.open(res.url, '_blank');
+      return;
+    }
+    if (res.onboarded) {
+      document.getElementById('stripeBanner').style.display = 'none';
+      showToast(res.message || 'Stripe connected', 'success');
+    }
   } catch (err) {
     showToast(err.message || 'Could not start Stripe onboarding', 'error');
   }

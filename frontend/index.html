@@ -504,12 +504,13 @@
 <!-- Page-specific logic -->
 <script>
   // ──────────────────────────────────────────
-  // INIT: If already logged in, skip this page
+  // INIT: Clear any saved session on page load
   // ──────────────────────────────────────────
-  // redirectIfLoggedIn() is in auth.js
-  // It checks localStorage for a token and
-  // sends the user to the right page
-  redirectIfLoggedIn();
+  // This ensures users must login every time
+  // No auto-redirect or session persistence
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('cart');
 
 
   // ──────────────────────────────────────────

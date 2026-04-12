@@ -49,7 +49,7 @@
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script>
-requireAuth();
+requireBuyer();
 
 window.onload = loadOrders;
 
@@ -118,17 +118,8 @@ async function cancelOrder(orderId) {
 
   try {
     showLoading();
-    const response = await fetch(BASE_URL + '/api/orders/' + orderId + '/cancel', {
-      method: 'PATCH',
-      headers: {
-        'Authorization': 'Bearer ' + localStorage.getItem('token')
-      }
-    });
-    const data = await response.json();
+    await apiCancelOrder(orderId);
     hideLoading();
-
-    if (!response.ok) throw new Error(data.message || 'Failed to cancel order');
-
     showToast('Order cancelled successfully', 'success');
 
     // Reload orders to show updated status

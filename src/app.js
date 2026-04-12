@@ -17,7 +17,18 @@ app.post('/api/webhooks/stripe',
 
 app.use(express.json());
 app.use(cors());
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "script-src": ["'self'", "'unsafe-inline'"],
+      "script-src-attr": ["'unsafe-inline'"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
+      "img-src": ["'self'", "data:", "blob:", "https:"]
+    }
+  }
+}));
 app.use(morgan('dev'));
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);

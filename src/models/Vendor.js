@@ -7,7 +7,7 @@ const vendorSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  shopName:        { type: String, required: true },
+  shopName:        { type: String, required: false },
   description:     { type: String },
   isApproved:      { type: Boolean, default: false },
   stripeAccountId: { type: String },

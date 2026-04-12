@@ -1,13 +1,25 @@
 const User    = require('../models/User');
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
+const ensureDatabaseConnection = (res) => {
+  if (mongoose.connection.readyState !== 1) {
+    res.status(503).json({
+      message: 'Database not connected yet. Check MongoDB Atlas network access, then try again.'
+    });
+    return false;
+  }
+  return true;
+};
+
 const register = async (req, res) => {
   try {
+    if (!ensureDatabaseConnection(res)) return;
     const { name, email, password, role } = req.body;
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -28,6 +40,7 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
+    if (!ensureDatabaseConnection(res)) return;
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) {

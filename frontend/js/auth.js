@@ -27,12 +27,21 @@ function getToken() {
 // Returns: { id, name, email, role } or null
 function getUser() {
   const user = localStorage.getItem('user');
-  return user ? JSON.parse(user) : null;
+  if (!user) return null;
+
+  try {
+    return JSON.parse(user);
+  } catch (error) {
+    localStorage.removeItem('user');
+    return null;
+  }
 }
 
 // Check if someone is logged in
 function isLoggedIn() {
-  return !!getToken(); // !! converts to true/false
+  const token = getToken();
+  const user = getUser();
+  return !!(token && user); // require both pieces of auth data
 }
 
 // Clear everything and go to login page (logout)
@@ -55,6 +64,8 @@ function logout() {
 // If not logged in → go to login page
 function requireAuth() {
   if (!isLoggedIn()) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     window.location.href = 'index.html';
   }
 }
@@ -89,7 +100,7 @@ function redirectIfLoggedIn() {
     // Send to the right page based on role
     if (user && user.role === 'vendor') {
       window.location.href = 'dashboard.html';
-    } else {
+    } else if (user) {
       window.location.href = 'marketplace.html';
     }
   }

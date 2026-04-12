@@ -154,7 +154,7 @@ async function createVendorProfile() {
   const shopName = document.getElementById('shopNameInput').value.trim();
   if (!shopName) return showToast('Enter a shop name', 'error');
 
-  const btn = event.target;
+  const btn = document.querySelector('#setupBanner .btn-primary');
   btn.disabled    = true;
   btn.textContent = 'Saving...';
 
@@ -204,6 +204,12 @@ async function handleStripe() {
     if (res.url) {
       showToast('Opening Stripe setup in new tab...', 'success');
       window.open(res.url, '_blank');
+      return;
+    }
+    if (res.onboarded) {
+      stripeOnboarded = true;
+      updateStripeUI(true);
+      showToast(res.message || 'Stripe connected successfully', 'success');
     }
   } catch(err) {
     showToast(err.message || 'Could not open Stripe', 'error');

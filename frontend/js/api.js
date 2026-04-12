@@ -6,7 +6,15 @@
 // BASE URL — your backend address
 // When you deploy to Render, change this ONE line to your live URL
 // Example: const BASE_URL = 'https://artisan-marketplace-api.onrender.com';
-const BASE_URL = 'http://localhost:5000';
+const isHttp = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+const isLiveServer =
+  window.location.port === '5500' ||
+  window.location.port === '5501' ||
+  window.location.hostname === '127.0.0.1';
+
+const BASE_URL = isHttp && !isLiveServer
+  ? window.location.origin
+  : 'http://localhost:5000';
 
 
 // ─────────────────────────────────────────────
@@ -36,18 +44,30 @@ async function makeRequest(endpoint, options = {}) {
   }
 
   // Make the actual HTTP request
-  const response = await fetch(url, {
-    ...options,   // method, body etc
-    headers       // our headers with token
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,   // method, body etc
+      headers       // our headers with token
+    });
+  } catch (error) {
+    throw new Error('Cannot reach the server. Start the backend and MongoDB, then try again.');
+  }
 
-  // Parse the JSON response from your backend
-  const data = await response.json();
+  const contentType = response.headers.get('content-type') || '';
+  let data = {};
+
+  if (contentType.includes('application/json')) {
+    data = await response.json();
+  } else {
+    const text = await response.text();
+    data = text ? { message: text } : {};
+  }
 
   // If the server returned an error (like 400, 401, 403, 500)
   // throw it so we can catch it in the calling code
   if (!response.ok) {
-    throw new Error(data.message || 'Something went wrong');
+    throw new Error(data.message || `Request failed with status ${response.status}`);
   }
 
   return data;
@@ -113,14 +133,22 @@ async function apiGetProduct(id) {
 // NOTE: uses FormData (not JSON) because images are included
 async function apiCreateProduct(formData) {
   const token = localStorage.getItem('token');
-  const response = await fetch(BASE_URL + '/api/products', {
+  let response;
+  try {
+    response = await fetch(BASE_URL + '/api/products', {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token },
     // NOTE: Do NOT set Content-Type here — browser sets it
     // automatically with the correct boundary for FormData
     body: formData
-  });
-  const data = await response.json();
+    });
+  } catch (error) {
+    throw new Error('Cannot reach the server. Start the backend and MongoDB, then try again.');
+  }
+  const contentType = response.headers.get('content-type') || '';
+  const data = contentType.includes('application/json')
+    ? await response.json()
+    : { message: await response.text() };
   if (!response.ok) throw new Error(data.message || 'Failed to create product');
   return data;
 }
@@ -214,6 +242,15 @@ async function apiGetStripeStatus() {
 // returns: { clientSecret, breakdown: { total, commission, vendorGets } }
 async function apiCheckout(orderId) {
   return await makeRequest('/api/payments/checkout', {
+    method: 'POST',
+    body: JSON.stringify({ orderId })
+  });
+}
+
+// Confirm payment (for UPI / manual confirmation)
+// endpoint: POST /api/payments/confirm
+async function apiConfirmPayment(orderId) {
+  return await makeRequest('/api/payments/confirm', {
     method: 'POST',
     body: JSON.stringify({ orderId })
   });

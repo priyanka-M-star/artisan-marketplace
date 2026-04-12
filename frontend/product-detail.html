@@ -112,7 +112,7 @@
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script>
-requireAuth();
+requireBuyer();
 
 let currentProduct = null;
 let allProducts = [];
@@ -233,7 +233,7 @@ function addToCart() {
 
 function updateCartCount() {
   const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-  const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const count = cart.reduce((sum, item) => sum + item.qty, 0);
   // You can add a cart badge in the header if you want
 }
 
