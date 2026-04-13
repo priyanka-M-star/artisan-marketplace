@@ -103,9 +103,13 @@ const checkout = async (req, res) => {
 
     const commission = Number(process.env.PLATFORM_COMMISSION) || 10;
 
+    // DEBUG: Log environment variables
+    console.log('checkout: NODE_ENV =', process.env.NODE_ENV, ', STRIPE_TEST_MODE =', process.env.STRIPE_TEST_MODE);
+
     // TEST MODE: Return simulated payment intent for development
     // No real Stripe account needed - works out of the box
     if (process.env.NODE_ENV === 'development' || process.env.STRIPE_TEST_MODE === 'true') {
+      console.log('checkout: TEST MODE ACTIVE - skipping Stripe');
       await Order.findByIdAndUpdate(orderId, {
         stripePaymentId: 'pi_test_' + orderId,
         paymentStatus: 'pending'
@@ -122,6 +126,7 @@ const checkout = async (req, res) => {
         message: 'Test mode: Use "I\'ve Paid" button to complete'
       });
     }
+    console.log('checkout: PRODUCTION MODE - using Stripe');
 
     // PRODUCTION: Real Stripe flow
     const vendorId = order.items[0].product.vendor;
